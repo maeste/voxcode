@@ -1,8 +1,10 @@
 # VoxCode
 
-Voice input for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) on Linux. Speak into your microphone and your words get transcribed locally (via Whisper) and sent as prompts to Claude Code.
+Voice input for AI coding agents on Linux. Speak into your microphone and your words get transcribed locally (via Whisper) and sent as prompts to your agent of choice.
 
 All processing happens on your machine — no audio data leaves your computer.
+
+Works standalone with tmux/Zellij, or as part of the [LINCE](https://github.com/RisorseArtificiali/lince) multi-agent dashboard for voice-controlled orchestration of multiple agents.
 
 ## How it works
 
