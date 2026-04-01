@@ -31,6 +31,29 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 1
 fi
 echo -e "${GREEN}  ✓ python3 $(python3 --version 2>&1 | awk '{print $2}')${NC}"
+
+# Check for PortAudio (required by sounddevice)
+PORTAUDIO_FOUND=false
+if ldconfig -p 2>/dev/null | grep -q libportaudio; then
+    PORTAUDIO_FOUND=true
+elif [ -f /usr/lib/libportaudio.so ] || [ -f /usr/lib64/libportaudio.so ]; then
+    PORTAUDIO_FOUND=true
+elif pkg-config --exists portaudio-2.0 2>/dev/null; then
+    PORTAUDIO_FOUND=true
+fi
+
+if [ "$PORTAUDIO_FOUND" = true ]; then
+    echo -e "${GREEN}  ✓ PortAudio found${NC}"
+else
+    echo -e "${RED}Error: PortAudio library not found (required by sounddevice).${NC}"
+    echo ""
+    echo "  Install it for your distro:"
+    echo "    Ubuntu/Debian:  sudo apt install libportaudio2"
+    echo "    Fedora/RHEL:    sudo dnf install portaudio-devel"
+    echo "    Arch:           sudo pacman -S portaudio"
+    echo ""
+    exit 1
+fi
 echo ""
 
 # ── Step 2: Install as global tool ─────────────────────────────────────
