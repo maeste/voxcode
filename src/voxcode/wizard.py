@@ -35,15 +35,47 @@ def _read_key(fd: int) -> str:
     return ch
 
 
-def _render_menu(console: Console, title: str, items: list[str], selected: int) -> None:
-    """Render a selection menu inside a Rich panel."""
+# Panel chrome (borders + padding) and menu header/footer overhead in lines.
+_MENU_VERTICAL_OVERHEAD = 8
+# Panel chrome + selector gutter ("  > ") consumed horizontally.
+_MENU_HORIZONTAL_OVERHEAD = 8
+
+
+def _truncate(text: str, max_width: int) -> str:
+    """Truncate text with an ellipsis so it renders on a single line."""
+    if max_width <= 0 or len(text) <= max_width:
+        return text
+    if max_width == 1:
+        return "…"
+    return text[: max_width - 1] + "…"
+
+
+def _render_menu(
+    console: Console,
+    title: str,
+    items: list[str],
+    selected: int,
+    top: int,
+    visible: int,
+) -> None:
+    """Render a selection menu inside a Rich panel with a scrolling viewport."""
+    total = len(items)
+    end = min(top + visible, total)
+    item_width = max(console.width - _MENU_HORIZONTAL_OVERHEAD, 10)
+
     lines = Text()
     lines.append(f"  {title}\n\n", style="bold")
-    for i, item in enumerate(items):
+    if top > 0:
+        lines.append(f"    ↑ {top} more above\n", style="dim cyan")
+    for i in range(top, end):
+        item = _truncate(items[i], item_width)
         if i == selected:
             lines.append(f"  > {item}\n", style="bold green")
         else:
             lines.append(f"    {item}\n", style="dim")
+    remaining = total - end
+    if remaining > 0:
+        lines.append(f"    ↓ {remaining} more below\n", style="dim cyan")
     lines.append("\n  ↑↓ navigate  Enter confirm  q quit", style="dim")
     console.clear()
     console.print(Panel(lines, title="[bold blue]VoxCode Setup[/]", border_style="blue", expand=False))
@@ -52,8 +84,17 @@ def _render_menu(console: Console, title: str, items: list[str], selected: int) 
 def _select_menu(console: Console, fd: int, title: str, items: list[str], default: int = 0) -> int | None:
     """Show an interactive menu and return selected index, or None if user quits."""
     selected = default
+    top = 0
     while True:
-        _render_menu(console, title, items, selected)
+        available = max(console.size.height - _MENU_VERTICAL_OVERHEAD, 3)
+        visible = min(available, len(items))
+        if selected < top:
+            top = selected
+        elif selected >= top + visible:
+            top = selected - visible + 1
+        top = max(0, min(top, len(items) - visible))
+
+        _render_menu(console, title, items, selected, top, visible)
         key = _read_key(fd)
         if key == "up":
             selected = (selected - 1) % len(items)
